@@ -1,0 +1,72 @@
+/* ── CSS Variables (dark theme default) ─────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --bg-primary:   #0d1117;
+  --bg-card:      #161b22;
+  --bg-input:     #1c2128;
+  --border:       #30363d;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted:   #484f58;
+  --accent:       #00ff87;
+  --accent-dim:   rgba(0, 255, 135, 0.15);
+  --danger:       #ef4444;
+}
+
+[data-theme="light"] {
+  --bg-primary:   #f6f8fa;
+  --bg-card:      #ffffff;
+  --bg-input:     #f0f2f4;
+  --border:       #d0d7de;
+  --text-primary: #1f2328;
+  --text-secondary: #57606a;
+  --text-muted:   #9198a1;
+  --accent:       #0d7a4e;
+  --accent-dim:   rgba(13, 122, 78, 0.1);
+  --danger:       #cf222e;
+}
+
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; }
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ── Selection ───────────────────────────────────────────────────────────── */
+::selection { background: var(--accent-dim); color: var(--text-primary); }
+
+/* ── Typography ──────────────────────────────────────────────────────────── */
+h1 { font-size: 2rem; font-weight: 800; }
+h2 { font-size: 1.4rem; font-weight: 700; }
+h3 { font-size: 1rem; font-weight: 700; }
+
+/* ── Utilities ───────────────────────────────────────────────────────────── */
+.accent { color: var(--accent); }
+
+/* ── Animations ──────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+app-match-card, app-match-detail { animation: fadeIn 0.25s ease forwards; }
+
+/* ── Loading pulse ───────────────────────────────────────────────────────── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}

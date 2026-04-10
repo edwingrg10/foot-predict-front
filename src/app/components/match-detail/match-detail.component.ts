@@ -1,5 +1,5 @@
 import {
-  Component, Input, OnChanges, AfterViewInit,
+  Component, Input, OnChanges, AfterViewInit, OnDestroy,
   ViewChild, ElementRef, signal
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -82,6 +82,37 @@ Chart.register(...registerables);
       }
 
       @if (pred && !isFinished) {
+
+        <!-- Resumen narrativo -->
+        @if (pred.match_summary) {
+          <div class="section-title">📝 Resumen del partido</div>
+          <div class="match-summary">{{ pred.match_summary }}</div>
+        }
+
+        <!-- Apuesta recomendada -->
+        @if (pred.smart_bet && pred.smart_bet.type) {
+          <div class="section-title">🎯 Apuesta recomendada</div>
+          <div class="smart-bet-card" [class.warning]="!!pred.smart_bet.warning">
+            <div class="sb-header">
+              <span class="sb-type">{{ pred.smart_bet.type }}</span>
+              <span class="sb-prob">{{ (pred.smart_bet.combined_prob * 100).toFixed(0) }}% prob.</span>
+              <span class="sb-odds">&#64;{{ pred.smart_bet.estimated_odds }}</span>
+            </div>
+            @if (pred.smart_bet.warning) {
+              <div class="sb-warning">⚠️ {{ pred.smart_bet.warning }}</div>
+            }
+            <div class="sb-picks">
+              @for (pick of pred.smart_bet.picks; track $index) {
+                <div class="sb-pick">
+                  <span class="sb-pick-market">{{ pick.market }}</span>
+                  <span class="sb-pick-label">{{ pick.label }}</span>
+                  <span class="sb-pick-prob">{{ (pick.prob * 100).toFixed(0) }}%</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
         <!-- 1X2 Probabilities -->
         <div class="section-title">Probabilidades 1X2</div>
         <div class="probs-big">
@@ -249,7 +280,7 @@ Chart.register(...registerables);
         }
 
         <!-- Analysis notes -->
-        @if (pred.analysis_notes.length > 0) {
+        @if (pred.analysis_notes && pred.analysis_notes.length > 0) {
           <div class="section-title">📊 Análisis del modelo</div>
           <div class="notes">
             @for (note of pred.analysis_notes; track $index) {
@@ -569,6 +600,78 @@ Chart.register(...registerables);
     }
     .h2h-date { color: var(--text-muted); }
     .h2h-score { font-weight: 700; color: var(--text-primary); }
+    /* Resumen narrativo */
+    .match-summary {
+      background: var(--bg-input);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 14px 16px;
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    /* Apuesta recomendada */
+    .smart-bet-card {
+      background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(59,130,246,0.08));
+      border: 1px solid rgba(16,185,129,0.35);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+    .smart-bet-card.warning {
+      background: rgba(245,158,11,0.08);
+      border-color: rgba(245,158,11,0.35);
+    }
+    .sb-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px;
+      background: rgba(16,185,129,0.1);
+      border-bottom: 1px solid rgba(16,185,129,0.2);
+    }
+    .smart-bet-card.warning .sb-header {
+      background: rgba(245,158,11,0.1);
+      border-color: rgba(245,158,11,0.2);
+    }
+    .sb-type {
+      font-size: 13px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: #10b981;
+    }
+    .smart-bet-card.warning .sb-type { color: #f59e0b; }
+    .sb-prob {
+      margin-left: auto;
+      font-size: 18px; font-weight: 800; color: var(--text-primary);
+    }
+    .sb-odds {
+      font-size: 18px; font-weight: 800;
+      color: #10b981; background: rgba(16,185,129,0.15);
+      padding: 2px 10px; border-radius: 6px;
+    }
+    .smart-bet-card.warning .sb-odds { color: #f59e0b; background: rgba(245,158,11,0.15); }
+    .sb-warning {
+      padding: 8px 16px;
+      font-size: 12px; color: #f59e0b;
+      background: rgba(245,158,11,0.08);
+    }
+    .sb-picks { padding: 10px 16px; display: flex; flex-direction: column; gap: 6px; }
+    .sb-pick {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px;
+      background: var(--bg-input); border-radius: 8px;
+    }
+    .sb-pick-market {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--text-muted);
+      background: var(--bg-card); padding: 2px 6px; border-radius: 4px;
+      white-space: nowrap;
+    }
+    .sb-pick-label { flex: 1; font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .sb-pick-prob {
+      font-size: 13px; font-weight: 700; color: #10b981;
+    }
+
     .disclaimer {
       margin-top: 20px;
       padding: 12px;
@@ -592,13 +695,14 @@ Chart.register(...registerables);
     .no-selection p { font-size: 14px; }
   `]
 })
-export class MatchDetailComponent implements OnChanges, AfterViewInit {
+export class MatchDetailComponent implements OnChanges, AfterViewInit, OnDestroy {
   @Input() match?: Match | null;
   @ViewChild('doughnutHome') homeCanvas!: ElementRef<HTMLCanvasElement>;
   @ViewChild('doughnutDraw') drawCanvas!: ElementRef<HTMLCanvasElement>;
   @ViewChild('doughnutAway') awayCanvas!: ElementRef<HTMLCanvasElement>;
 
   private charts: Chart[] = [];
+  private redrawTimer: any;
 
   constructor(private api: ApiService, public auth: AuthService) { }
 
@@ -612,7 +716,13 @@ export class MatchDetailComponent implements OnChanges, AfterViewInit {
 
   ngOnChanges(): void {
     this.destroyCharts();
-    setTimeout(() => { if (this.pred) this.drawCharts(); }, 50);
+    clearTimeout(this.redrawTimer);
+    this.redrawTimer = setTimeout(() => { if (this.pred) this.drawCharts(); }, 50);
+  }
+
+  ngOnDestroy(): void {
+    this.destroyCharts();
+    clearTimeout(this.redrawTimer);
   }
 
   private destroyCharts(): void {
@@ -620,9 +730,15 @@ export class MatchDetailComponent implements OnChanges, AfterViewInit {
     this.charts = [];
   }
 
+  private destroyCanvasChart(canvas: HTMLCanvasElement): void {
+    const existing = Chart.getChart(canvas);
+    if (existing) existing.destroy();
+  }
+
   private drawCharts(): void {
     if (!this.homeCanvas || !this.pred) return;
     const make = (canvas: HTMLCanvasElement, val: number, color: string) => {
+      this.destroyCanvasChart(canvas);
       return new Chart(canvas, {
         type: 'doughnut',
         data: {

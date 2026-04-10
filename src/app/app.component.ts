@@ -2,8 +2,8 @@ import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
+import { RouterOutlet } from '@angular/router';
 import { NavbarComponent } from './components/navbar/navbar.component';
-import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { AuthService } from './services/auth.service';
 import { ApiService } from './services/api.service';
 
@@ -14,12 +14,12 @@ import { ApiService } from './services/api.service';
     CommonModule,
     FormsModule,
     HttpClientModule,
+    RouterOutlet,
     NavbarComponent,
-    DashboardComponent,
   ],
   template: `
     <app-navbar (showLogin)="showLoginModal.set(true)" (search)="onSearch($event)" />
-    <app-dashboard />
+    <router-outlet />
 
     <!-- Login modal -->
     @if (showLoginModal()) {

@@ -79,7 +79,24 @@ export interface Prediction {
   value_bets: ValueBet[];
   score_distribution: ScoreEntry[];
   analysis_notes: string[];
+  match_summary?: string;
+  smart_bet?: SmartBet | null;
   model_version?: string;
+}
+
+export interface SmartBetPick {
+  label: string;
+  market: string;
+  prob: number;
+}
+
+export interface SmartBet {
+  type: string | null;
+  picks: SmartBetPick[];
+  combined_prob: number;
+  estimated_odds: number;
+  warning?: string;
+  message?: string;
 }
 
 export interface MatchStats {

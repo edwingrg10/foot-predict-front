@@ -1,17 +1,25 @@
 import { Component, EventEmitter, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   template: `
     <nav class="navbar">
       <div class="nav-brand">
-        <span class="brand-icon">⚽</span>
-        <span class="brand-name">FootPredict<span class="brand-ai">AI</span></span>
+        <a routerLink="/" class="brand-link">
+          <span class="brand-icon">⚽</span>
+          <span class="brand-name">FootPredict<span class="brand-ai">AI</span></span>
+        </a>
+      </div>
+
+      <div class="nav-links">
+        <a routerLink="/"      routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}" class="nav-link">Partidos</a>
+        <a routerLink="/stats" routerLinkActive="active" class="nav-link">Rendimiento</a>
       </div>
 
       <div class="nav-search">
@@ -51,20 +59,25 @@ import { AuthService } from '../../services/auth.service';
       z-index: 100;
       box-shadow: 0 2px 16px rgba(0,0,0,0.3);
     }
-    .nav-brand {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 200px;
+    .nav-brand { min-width: 160px; }
+    .brand-link {
+      display: flex; align-items: center; gap: 8px;
+      text-decoration: none;
     }
     .brand-icon { font-size: 24px; }
     .brand-name {
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--text-primary);
-      letter-spacing: -0.5px;
+      font-size: 20px; font-weight: 800;
+      color: var(--text-primary); letter-spacing: -0.5px;
     }
     .brand-ai { color: var(--accent); }
+    .nav-links { display: flex; gap: 4px; }
+    .nav-link {
+      padding: 7px 14px; border-radius: 8px;
+      color: var(--text-muted); font-size: 14px; font-weight: 600;
+      text-decoration: none; transition: all 0.2s;
+    }
+    .nav-link:hover { color: var(--text-primary); background: var(--bg-input); }
+    .nav-link.active { color: var(--accent); background: rgba(16,185,129,0.1); }
     .nav-search {
       flex: 1;
       display: flex;

@@ -80,4 +80,16 @@ export class ApiService {
   deleteBet(id: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/bets/${id}`);
   }
+
+  getModelStats(): Observable<any> {
+    return this.http.get<any>(`${this.base}/matches/model-stats`);
+  }
+
+  evaluatePredictions(): Observable<any> {
+    return this.http.post<any>(`${this.base}/matches/evaluate`, {});
+  }
+
+  getMatchResults(day: 'today' | 'yesterday'): Observable<any> {
+    return this.http.get<any>(`${this.base}/matches/results?day=${day}`);
+  }
 }

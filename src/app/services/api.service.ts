@@ -92,4 +92,12 @@ export class ApiService {
   getMatchResults(day: 'today' | 'yesterday'): Observable<any> {
     return this.http.get<any>(`${this.base}/matches/results?day=${day}`);
   }
+
+  getTrainingStatus(): Observable<any> {
+    return this.http.get<any>(`${this.base}/matches/training-status`);
+  }
+
+  retrainModels(): Observable<any> {
+    return this.http.post<any>(`${this.base}/matches/retrain`, {});
+  }
 }

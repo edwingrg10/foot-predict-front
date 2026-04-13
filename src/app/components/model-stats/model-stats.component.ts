@@ -2,7 +2,7 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../services/api.service';
 
-type MainTab = 'results' | 'global';
+type MainTab = 'results' | 'global' | 'feedback';
 type DayTab  = 'today'   | 'yesterday';
 
 @Component({
@@ -19,14 +19,22 @@ type DayTab  = 'today'   | 'yesterday';
           <p class="subtitle">Predicciones vs resultados reales</p>
         </div>
         <div class="header-actions">
-          <button class="btn-eval" (click)="runEvaluate()" [disabled]="evaluating()">
-            {{ evaluating() ? 'Evaluando...' : 'Evaluar ahora' }}
-          </button>
+          <div class="header-btns">
+            <button class="btn-eval" (click)="runEvaluate()" [disabled]="evaluating()">
+              {{ evaluating() ? 'Evaluando...' : 'Evaluar ahora' }}
+            </button>
+            <button class="btn-retrain" (click)="runRetrain()" [disabled]="retraining()">
+              {{ retraining() ? 'Reentrenando...' : 'Reentrenar modelo' }}
+            </button>
+          </div>
         </div>
       </div>
 
       @if (evalMsg()) {
         <div class="eval-toast" [class.success]="evalSuccess()">{{ evalMsg() }}</div>
+      }
+      @if (retrainMsg()) {
+        <div class="eval-toast" [class.success]="retrainSuccess()">{{ retrainMsg() }}</div>
       }
 
       <!-- Main tabs -->
@@ -36,6 +44,9 @@ type DayTab  = 'today'   | 'yesterday';
         </button>
         <button class="main-tab" [class.active]="mainTab() === 'global'" (click)="mainTab.set('global')">
           Rendimiento global
+        </button>
+        <button class="main-tab" [class.active]="mainTab() === 'feedback'" (click)="switchToFeedback()">
+          Retroalimentación
         </button>
       </div>
 
@@ -167,6 +178,143 @@ type DayTab  = 'today'   | 'yesterday';
               }
             </div>
           }
+        }
+      }
+
+      <!-- ── TAB: RETROALIMENTACIÓN ── -->
+      @if (mainTab() === 'feedback') {
+        @if (loadingFeedback()) {
+          <div class="center-msg"><div class="spinner"></div><p>Cargando estado del modelo...</p></div>
+        } @else if (!feedbackStatus()) {
+          <div class="empty-state">
+            <span class="empty-icon">🔄</span>
+            <p>No se pudo cargar el estado de retroalimentación.</p>
+          </div>
+        } @else {
+
+          <!-- Embudo de datos -->
+          <div class="section-label">Embudo de datos</div>
+          <div class="section-desc">Cómo fluyen los partidos desde el scraping hasta el aprendizaje del modelo</div>
+          <div class="funnel-row">
+            <div class="funnel-step">
+              <div class="funnel-icon">⚽</div>
+              <div class="funnel-n">{{ feedbackStatus()!.data_pipeline.finished_matches }}</div>
+              <div class="funnel-label">Partidos terminados</div>
+            </div>
+            <div class="funnel-arrow">→</div>
+            <div class="funnel-step">
+              <div class="funnel-icon">📊</div>
+              <div class="funnel-n">{{ feedbackStatus()!.data_pipeline.finished_with_stats }}</div>
+              <div class="funnel-label">Con estadísticas</div>
+              <div class="funnel-sub">{{ statsRatio() }}% del total</div>
+            </div>
+            <div class="funnel-arrow">→</div>
+            <div class="funnel-step good">
+              <div class="funnel-icon">✓</div>
+              <div class="funnel-n green">{{ feedbackStatus()!.data_pipeline.evaluated_predictions }}</div>
+              <div class="funnel-label">Predicciones evaluadas</div>
+              <div class="funnel-sub">retroalimentan el modelo</div>
+            </div>
+            <div class="funnel-arrow">→</div>
+            <div class="funnel-step" [class.warn-step]="feedbackStatus()!.data_pipeline.pending_evaluation > 0">
+              <div class="funnel-icon">⏳</div>
+              <div class="funnel-n" [class.orange]="feedbackStatus()!.data_pipeline.pending_evaluation > 0">
+                {{ feedbackStatus()!.data_pipeline.pending_evaluation }}
+              </div>
+              <div class="funnel-label">Pendientes de evaluar</div>
+              @if (feedbackStatus()!.data_pipeline.pending_evaluation > 0) {
+                <div class="funnel-sub warn">Usa "Evaluar ahora"</div>
+              }
+            </div>
+          </div>
+
+          <!-- Estado de los modelos -->
+          <div class="section-label">Estado de los modelos</div>
+          @if (lastTrainingRun()) {
+            <div class="last-train-banner">
+              Último entrenamiento: <strong>{{ formatTs(lastTrainingRun()!.timestamp) }}</strong>
+              con <strong>{{ lastTrainingRun()!.total_samples }}</strong> partidos
+            </div>
+          } @else {
+            <div class="last-train-banner warn-banner">
+              El modelo aún no tiene historial de entrenamientos registrado.
+            </div>
+          }
+          <div class="model-grid">
+            @for (entry of modelEntries(); track entry.key) {
+              <div class="model-card" [class.missing]="!entry.value.exists">
+                <div class="model-card-header">
+                  <span class="model-name">{{ entry.value.label }}</span>
+                  <span class="model-status-dot" [class.ok]="entry.value.exists" [class.ko]="!entry.value.exists"></span>
+                </div>
+                @if (entry.value.exists) {
+                  <div class="model-trained-at">{{ formatTs(entry.value.trained_at) }}</div>
+                  <div class="model-size">{{ entry.value.size_kb }} KB</div>
+                  @if (lastRunAccuracy(entry.key) !== null) {
+                    <div class="model-acc">CV accuracy: <strong>{{ fmtPct(lastRunAccuracy(entry.key)) }}</strong></div>
+                  }
+                } @else {
+                  <div class="model-missing-msg">Sin entrenar</div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Historial de entrenamientos -->
+          @if (feedbackStatus()!.training_history.length > 0) {
+            <div class="section-label">Historial de entrenamientos</div>
+            <div class="train-table">
+              <div class="train-header">
+                <span>Fecha</span>
+                <span class="center">Muestras</span>
+                <span class="center">1X2</span>
+                <span class="center">Over 2.5</span>
+                <span class="center">BTTS</span>
+                <span class="center">Corners</span>
+              </div>
+              @for (run of feedbackStatus()!.training_history; track run.timestamp) {
+                <div class="train-row">
+                  <span class="train-date">{{ formatTs(run.timestamp) }}</span>
+                  <span class="center muted">{{ run.total_samples }}</span>
+                  <span class="center" [class.acc-good]="(run.models?.result_1x2?.accuracy ?? 0) >= 0.5">
+                    {{ fmtPct(run.models?.result_1x2?.accuracy) }}
+                  </span>
+                  <span class="center" [class.acc-good]="(run.models?.over_25?.accuracy ?? 0) >= 0.55">
+                    {{ fmtPct(run.models?.over_25?.accuracy) }}
+                  </span>
+                  <span class="center" [class.acc-good]="(run.models?.btts?.accuracy ?? 0) >= 0.55">
+                    {{ fmtPct(run.models?.btts?.accuracy) }}
+                  </span>
+                  <span class="center" [class.acc-good]="(run.models?.corners_over_95?.accuracy ?? 0) >= 0.55">
+                    {{ fmtPct(run.models?.corners_over_95?.accuracy) }}
+                  </span>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="section-label">Historial de entrenamientos</div>
+            <div class="empty-inline">
+              <p>Sin historial registrado. El historial se genera al usar "Reentrenar modelo".</p>
+            </div>
+          }
+
+          <!-- Scheduler automático -->
+          @if (feedbackStatus()!.scheduler_jobs.length > 0) {
+            <div class="section-label">Scraping automático</div>
+            <div class="scheduler-list">
+              @for (job of feedbackStatus()!.scheduler_jobs; track job.id) {
+                <div class="scheduler-item">
+                  <span class="scheduler-name">{{ job.name }}</span>
+                  <span class="scheduler-next">Próxima ejecución: {{ formatTs(job.next_run) }}</span>
+                </div>
+              }
+            </div>
+            <div class="section-desc" style="margin-top:6px">
+              El scraping automático actualiza resultados y evalúa predicciones.
+              El reentrenamiento debe ejecutarse manualmente o de forma programada.
+            </div>
+          }
+
         }
       }
 
@@ -393,6 +541,64 @@ type DayTab  = 'today'   | 'yesterday';
     .calib-bar.declared { background: rgba(99,102,241,0.6); height: 100%; border-radius: 4px; }
     .calib-bar.actual   { background: #10b981; height: 100%; border-radius: 4px; }
 
+    /* Header buttons */
+    .header-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-retrain { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 9px 18px; color: var(--text-primary); font-weight: 700; font-size: 13px; cursor: pointer; transition: border-color 0.2s; }
+    .btn-retrain:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .btn-retrain:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Funnel */
+    .funnel-row { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; }
+    .funnel-step { flex: 1; min-width: 120px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 12px; text-align: center; display: flex; flex-direction: column; gap: 4px; }
+    .funnel-step.good { border-color: rgba(16,185,129,0.4); }
+    .funnel-step.warn-step { border-color: rgba(245,158,11,0.4); }
+    .funnel-icon { font-size: 22px; }
+    .funnel-n { font-size: 28px; font-weight: 800; color: var(--text-primary); }
+    .funnel-n.green { color: #10b981; }
+    .funnel-n.orange { color: #f59e0b; }
+    .funnel-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+    .funnel-sub { font-size: 11px; color: var(--text-muted); }
+    .funnel-sub.warn { color: #f59e0b; }
+    .funnel-arrow { font-size: 22px; color: var(--text-muted); flex-shrink: 0; }
+
+    /* Last training banner */
+    .last-train-banner { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; }
+    .warn-banner { border-color: rgba(245,158,11,0.4); color: #f59e0b; background: rgba(245,158,11,0.05); }
+
+    /* Model grid */
+    .model-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 24px; }
+    .model-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 4px; }
+    .model-card.missing { opacity: 0.6; border-style: dashed; }
+    .model-card-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 2px; }
+    .model-name { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+    .model-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .model-status-dot.ok { background: #10b981; }
+    .model-status-dot.ko { background: #ef4444; }
+    .model-trained-at { font-size: 11px; color: var(--text-muted); }
+    .model-size { font-size: 11px; color: var(--text-muted); }
+    .model-acc { font-size: 12px; color: var(--text-secondary); }
+    .model-acc strong { color: var(--accent); }
+    .model-missing-msg { font-size: 12px; color: var(--text-muted); font-style: italic; }
+
+    /* Training history table */
+    .train-table { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+    .train-header, .train-row { display: grid; grid-template-columns: 1.6fr 70px 70px 80px 70px 80px; align-items: center; padding: 9px 16px; gap: 6px; }
+    .train-header { background: var(--bg-input); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+    .train-row { border-bottom: 1px solid var(--border); font-size: 13px; }
+    .train-row:last-child { border-bottom: none; }
+    .train-date { color: var(--text-secondary); font-size: 12px; }
+    .muted { color: var(--text-muted); text-align: center; }
+    .acc-good { color: #10b981; font-weight: 700; }
+
+    /* Scheduler */
+    .scheduler-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 6px; }
+    .scheduler-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .scheduler-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .scheduler-next { font-size: 12px; color: var(--text-muted); }
+
+    /* Empty inline */
+    .empty-inline { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px; margin-bottom: 20px; }
+
     .empty-state { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; gap: 10px; text-align: center; }
     .empty-icon  { font-size: 48px; }
     .empty-state h2 { color: var(--text-primary); margin: 0; font-size: 18px; }
@@ -422,6 +628,12 @@ export class ModelStatsComponent implements OnInit {
   evalMsg     = signal('');
   evalSuccess = signal(false);
 
+  feedbackStatus    = signal<any | null>(null);
+  loadingFeedback   = signal(false);
+  retraining        = signal(false);
+  retrainMsg        = signal('');
+  retrainSuccess    = signal(false);
+
   // Computed summary stats from result groups
   allResultMatches = () => this.resultGroups().flatMap(g => g.matches);
 
@@ -445,9 +657,73 @@ export class ModelStatsComponent implements OnInit {
 
   constructor(private api: ApiService) {}
 
+  // Computed para la pestaña de retroalimentación
+  lastTrainingRun = () => {
+    const h = this.feedbackStatus()?.training_history;
+    return (h && h.length > 0) ? h[0] : null;
+  };
+
+  statsRatio = () => {
+    const d = this.feedbackStatus()?.data_pipeline;
+    if (!d || !d.finished_matches) return 0;
+    return Math.round(d.finished_with_stats / d.finished_matches * 100);
+  };
+
+  modelEntries = () => {
+    const models = this.feedbackStatus()?.models ?? {};
+    return Object.entries(models).map(([key, value]) => ({ key, value: value as any }));
+  };
+
+  lastRunAccuracy = (modelKey: string): number | null => {
+    const run = this.lastTrainingRun();
+    return run?.models?.[modelKey]?.accuracy ?? null;
+  };
+
   ngOnInit(): void {
     this.loadResults();
     this.loadStats();
+  }
+
+  switchToFeedback(): void {
+    this.mainTab.set('feedback');
+    if (!this.feedbackStatus()) {
+      this.loadFeedback();
+    }
+  }
+
+  loadFeedback(): void {
+    this.loadingFeedback.set(true);
+    this.api.getTrainingStatus().subscribe({
+      next: s  => { this.feedbackStatus.set(s); this.loadingFeedback.set(false); },
+      error: () => this.loadingFeedback.set(false),
+    });
+  }
+
+  runRetrain(): void {
+    this.retraining.set(true);
+    this.retrainMsg.set('');
+    this.api.retrainModels().subscribe({
+      next: r => {
+        this.retraining.set(false);
+        this.retrainSuccess.set(true);
+        const trained = Object.keys(r.models_trained ?? {}).length;
+        this.retrainMsg.set(
+          r.ok
+            ? `Reentrenamiento completado. ${r.evaluated ?? 0} predicciones evaluadas, ${trained} modelos actualizados.`
+            : (r.message ?? 'Dataset insuficiente para reentrenar.')
+        );
+        setTimeout(() => this.retrainMsg.set(''), 6000);
+        // Refrescar estado
+        this.loadFeedback();
+        this.loadStats();
+      },
+      error: () => {
+        this.retraining.set(false);
+        this.retrainSuccess.set(false);
+        this.retrainMsg.set('Error al reentrenar el modelo.');
+        setTimeout(() => this.retrainMsg.set(''), 5000);
+      },
+    });
   }
 
   switchDay(day: DayTab): void {
@@ -510,6 +786,19 @@ export class ModelStatsComponent implements OnInit {
     return new Date(dateStr).toLocaleTimeString('es-CO', {
       hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota'
     });
+  }
+
+  fmtPct(v: number | null | undefined): string {
+    return v != null ? (v * 100).toFixed(1) + '%' : '—';
+  }
+
+  formatTs(ts: string | null | undefined): string {
+    if (!ts) return '—';
+    try {
+      return new Date(ts).toLocaleString('es-CO', {
+        dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Bogota'
+      });
+    } catch { return ts; }
   }
 
   fmt(v: number | null | undefined): string {

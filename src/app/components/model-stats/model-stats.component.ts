@@ -309,9 +309,88 @@ type DayTab  = 'today'   | 'yesterday';
                 </div>
               }
             </div>
-            <div class="section-desc" style="margin-top:6px">
-              El scraping automático actualiza resultados y evalúa predicciones.
-              El reentrenamiento debe ejecutarse manualmente o de forma programada.
+          }
+
+          <!-- ── Historial de predicciones evaluadas ── -->
+          <div class="section-label" style="margin-top:28px">
+            Historial de predicciones evaluadas
+            <span class="section-badge">{{ historyTotal() }} en DB</span>
+          </div>
+          <div class="section-desc">
+            Lo que el modelo predijo antes de cada partido vs lo que ocurrió realmente.
+            Este historial retroalimenta el reentrenamiento.
+          </div>
+
+          @if (loadingHistory()) {
+            <div class="center-msg"><div class="spinner"></div><p>Cargando historial...</p></div>
+          } @else if (historyItems().length === 0) {
+            <div class="empty-inline">
+              Sin predicciones evaluadas aún. Se generan automáticamente al terminar los partidos.
+            </div>
+          } @else {
+            <div class="history-table">
+              <div class="ht-header">
+                <span>Fecha</span>
+                <span>Partido</span>
+                <span class="center">Predicción</span>
+                <span class="center">Real</span>
+                <span class="center">1X2</span>
+                <span class="center">O2.5</span>
+                <span class="center">BTTS</span>
+                <span class="center">Smart Bet</span>
+                <span class="center">Brier</span>
+              </div>
+              @for (item of historyItems(); track item.prediction_id) {
+                <div class="ht-row" [class.ht-correct]="item.outcome_correct" [class.ht-wrong]="item.outcome_correct === false">
+                  <span class="ht-date">{{ shortDate(item.match_date) }}</span>
+
+                  <div class="ht-match">
+                    <img [src]="item.league_logo" class="ht-league-logo" onerror="this.style.display='none'" />
+                    <div class="ht-teams">
+                      <span class="ht-home">{{ item.home_team }}</span>
+                      <span class="ht-vs">vs</span>
+                      <span class="ht-away">{{ item.away_team }}</span>
+                    </div>
+                  </div>
+
+                  <div class="ht-pred center">
+                    <span class="ht-pred-label" [class]="'pred-' + item.predicted_outcome.toLowerCase()">
+                      {{ item.predicted_label }}
+                    </span>
+                    <span class="ht-prob">{{ pct(item.confidence_score) }}</span>
+                  </div>
+
+                  <div class="ht-actual center">
+                    <span class="ht-score">{{ item.actual_score ?? '—' }}</span>
+                    <span class="ht-actual-label">{{ item.actual_label }}</span>
+                  </div>
+
+                  <span class="ht-cell center" [class.cell-ok]="item.outcome_correct" [class.cell-ko]="item.outcome_correct === false">
+                    {{ item.outcome_correct === true ? '✓' : item.outcome_correct === false ? '✗' : '—' }}
+                  </span>
+                  <span class="ht-cell center" [class.cell-ok]="item.over25_correct" [class.cell-ko]="item.over25_correct === false">
+                    {{ item.over25_correct === true ? '✓' : item.over25_correct === false ? '✗' : '—' }}
+                  </span>
+                  <span class="ht-cell center" [class.cell-ok]="item.btts_correct" [class.cell-ko]="item.btts_correct === false">
+                    {{ item.btts_correct === true ? '✓' : item.btts_correct === false ? '✗' : '—' }}
+                  </span>
+                  <span class="ht-cell center smart" [class.cell-ok]="item.smart_bet_correct" [class.cell-ko]="item.smart_bet_correct === false" [class.cell-na]="item.smart_bet_correct === null">
+                    @if (item.smart_bet) {
+                      {{ item.smart_bet_correct === true ? '✓' : item.smart_bet_correct === false ? '✗' : '?' }}
+                    } @else { — }
+                  </span>
+                  <span class="ht-brier center" [class.brier-good]="(item.brier_1x2??1) < 0.25" [class.brier-bad]="(item.brier_1x2??0) > 0.5">
+                    {{ item.brier_1x2 != null ? item.brier_1x2.toFixed(3) : '—' }}
+                  </span>
+                </div>
+              }
+            </div>
+
+            <!-- Paginación -->
+            <div class="pagination">
+              <button class="page-btn" [disabled]="historyPage() <= 1" (click)="goToPage(historyPage() - 1)">← Anterior</button>
+              <span class="page-info">Página {{ historyPage() }} de {{ historyPages() }} · {{ historyTotal() }} predicciones</span>
+              <button class="page-btn" [disabled]="historyPage() >= historyPages()" (click)="goToPage(historyPage() + 1)">Siguiente →</button>
             </div>
           }
 
@@ -599,6 +678,57 @@ type DayTab  = 'today'   | 'yesterday';
     /* Empty inline */
     .empty-inline { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px; margin-bottom: 20px; }
 
+    /* Section badge */
+    .section-badge { background: var(--accent); color: #000; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 20px; margin-left: 8px; vertical-align: middle; }
+
+    /* History table */
+    .history-table { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 12px; overflow-x: auto; }
+    .ht-header, .ht-row {
+      display: grid;
+      grid-template-columns: 72px 1fr 100px 90px 40px 40px 40px 80px 56px;
+      align-items: center; padding: 9px 14px; gap: 8px; min-width: 700px;
+    }
+    .ht-header { background: var(--bg-input); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+    .ht-row { border-bottom: 1px solid var(--border); font-size: 12px; transition: background 0.15s; }
+    .ht-row:last-child { border-bottom: none; }
+    .ht-row:hover { background: var(--bg-input); }
+    .ht-row.ht-correct { border-left: 3px solid rgba(16,185,129,0.4); }
+    .ht-row.ht-wrong   { border-left: 3px solid rgba(239,68,68,0.3); }
+
+    .ht-date { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+    .ht-match { display: flex; align-items: center; gap: 7px; min-width: 0; }
+    .ht-league-logo { width: 16px; height: 16px; object-fit: contain; flex-shrink: 0; }
+    .ht-teams { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .ht-home, .ht-away { font-size: 11px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ht-vs { font-size: 9px; color: var(--text-muted); }
+
+    .ht-pred { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .ht-pred-label { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+    .pred-h { background: rgba(59,130,246,0.15); color: #3b82f6; }
+    .pred-d { background: rgba(107,114,128,0.15); color: #9ca3af; }
+    .pred-a { background: rgba(139,92,246,0.15); color: #8b5cf6; }
+    .ht-prob { font-size: 10px; color: var(--text-muted); }
+
+    .ht-actual { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .ht-score { font-size: 13px; font-weight: 800; color: var(--text-primary); }
+    .ht-actual-label { font-size: 10px; color: var(--text-muted); }
+
+    .ht-cell { font-size: 14px; font-weight: 800; color: var(--text-muted); }
+    .ht-cell.cell-ok { color: #10b981; }
+    .ht-cell.cell-ko { color: #ef4444; }
+    .ht-cell.cell-na { color: var(--text-muted); opacity: 0.5; }
+    .ht-cell.smart { font-size: 13px; }
+    .ht-brier { font-size: 11px; font-weight: 700; color: var(--text-secondary); }
+    .ht-brier.brier-good { color: #10b981; }
+    .ht-brier.brier-bad  { color: #ef4444; }
+
+    /* Pagination */
+    .pagination { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 12px 0 20px; }
+    .page-btn { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 7px 16px; color: var(--text-primary); font-size: 13px; cursor: pointer; transition: all 0.2s; }
+    .page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .page-info { font-size: 12px; color: var(--text-muted); }
+
     .empty-state { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; gap: 10px; text-align: center; }
     .empty-icon  { font-size: 48px; }
     .empty-state h2 { color: var(--text-primary); margin: 0; font-size: 18px; }
@@ -633,6 +763,13 @@ export class ModelStatsComponent implements OnInit {
   retraining        = signal(false);
   retrainMsg        = signal('');
   retrainSuccess    = signal(false);
+
+  // Historial de predicciones evaluadas
+  historyItems    = signal<any[]>([]);
+  historyPage     = signal(1);
+  historyTotal    = signal(0);
+  historyPages    = signal(1);
+  loadingHistory  = signal(false);
 
   // Computed summary stats from result groups
   allResultMatches = () => this.resultGroups().flatMap(g => g.matches);
@@ -686,9 +823,8 @@ export class ModelStatsComponent implements OnInit {
 
   switchToFeedback(): void {
     this.mainTab.set('feedback');
-    if (!this.feedbackStatus()) {
-      this.loadFeedback();
-    }
+    if (!this.feedbackStatus()) this.loadFeedback();
+    if (this.historyItems().length === 0) this.loadHistory();
   }
 
   loadFeedback(): void {
@@ -697,6 +833,24 @@ export class ModelStatsComponent implements OnInit {
       next: s  => { this.feedbackStatus.set(s); this.loadingFeedback.set(false); },
       error: () => this.loadingFeedback.set(false),
     });
+  }
+
+  loadHistory(page = 1): void {
+    this.loadingHistory.set(true);
+    this.api.getPredictionsHistory(page).subscribe({
+      next: r => {
+        this.historyItems.set(r.items ?? []);
+        this.historyTotal.set(r.total ?? 0);
+        this.historyPages.set(r.pages ?? 1);
+        this.historyPage.set(r.page ?? 1);
+        this.loadingHistory.set(false);
+      },
+      error: () => this.loadingHistory.set(false),
+    });
+  }
+
+  goToPage(page: number): void {
+    this.loadHistory(page);
   }
 
   runRetrain(): void {
@@ -812,5 +966,17 @@ export class ModelStatsComponent implements OnInit {
   }
   diff(b: any): number {
     return Math.abs(b.avg_predicted - b.actual_pct);
+  }
+
+  pct(v: number | null | undefined): string {
+    return v != null ? (v * 100).toFixed(0) + '%' : '—';
+  }
+
+  shortDate(dateStr: string): string {
+    if (!dateStr) return '—';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'America/Bogota' });
+    } catch { return dateStr.slice(0, 10); }
   }
 }

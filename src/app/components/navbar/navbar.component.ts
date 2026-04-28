@@ -18,8 +18,9 @@ import { AuthService } from '../../services/auth.service';
       </div>
 
       <div class="nav-links">
-        <a routerLink="/"      routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}" class="nav-link">Partidos</a>
-        <a routerLink="/stats" routerLinkActive="active" class="nav-link">Rendimiento</a>
+        <a routerLink="/"              routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}" class="nav-link">Partidos</a>
+        <a routerLink="/predicciones"  routerLinkActive="active" class="nav-link">Predicciones</a>
+        <a routerLink="/stats"         routerLinkActive="active" class="nav-link">Rendimiento</a>
       </div>
 
       <div class="nav-search">

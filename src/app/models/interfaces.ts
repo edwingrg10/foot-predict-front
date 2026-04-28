@@ -82,6 +82,18 @@ export interface Prediction {
   match_summary?: string;
   smart_bet?: SmartBet | null;
   model_version?: string;
+  // Evaluación post-partido
+  actual_outcome?: string | null;
+  actual_goals?: number | null;
+  actual_corners?: number | null;
+  outcome_correct?: boolean | null;
+  over25_correct?: boolean | null;
+  btts_correct?: boolean | null;
+  corners_correct?: boolean | null;
+  cards_correct?: boolean | null;
+  smart_bet_correct?: boolean | null;
+  brier_1x2?: number | null;
+  evaluated_at?: string | null;
 }
 
 export interface SmartBetPick {

@@ -100,4 +100,13 @@ export class ApiService {
   retrainModels(): Observable<any> {
     return this.http.post<any>(`${this.base}/matches/retrain`, {});
   }
+
+  getPredictionsHistory(page = 1, perPage = 25, leagueId?: number): Observable<any> {
+    let params = new HttpParams()
+      .set('page', page)
+      .set('per_page', perPage)
+      .set('only_evaluated', 'true');
+    if (leagueId) params = params.set('league_id', leagueId);
+    return this.http.get<any>(`${this.base}/matches/predictions-history`, { params });
+  }
 }

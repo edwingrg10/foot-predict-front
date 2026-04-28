@@ -177,10 +177,15 @@ export interface League {
   season?: string;
 }
 
+export type UserPlan = 'hincha' | 'bronce' | 'plata' | 'oro';
+
 export interface User {
   id: number;
   email: string;
   username: string;
+  is_admin: boolean;
+  plan: UserPlan;
+  is_verified: boolean;
 }
 
 export interface SavedBet {
@@ -189,10 +194,25 @@ export interface SavedBet {
   bet_type: string;
   bet_pick: string;
   odds?: number;
+  real_odds?: number;
   stake?: number;
   status: string;
   notes?: string;
   created_at: string;
+}
+
+export interface ParlayPick {
+  matchId: number;
+  matchLabel: string;
+  league: string;
+  marketKey: string;      // 'corners' | 'cards' | 'goals_25' | '1x2'
+  market: string;         // display label, e.g. '🚩 Córneres'
+  pick: string;           // e.g. 'Over 7.5'
+  line?: number;
+  modelExpected?: number;
+  probability: number;
+  estimatedOdds: number;
+  real_odds?: number;
 }
 
 // Nuevos status del API (valores en inglés minúscula)

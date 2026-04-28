@@ -6,6 +6,7 @@ import { CommonModule } from '@angular/common';
 import { Match, ValueBet, FINISHED_STATUSES, LIVE_STATUSES } from '../../models/interfaces';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { ParlayService } from '../../services/parlay.service';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -132,6 +133,48 @@ Chart.register(...registerables);
             <span>Visitante</span>
           </div>
         </div>
+        @if (auth.isAdmin()) {
+        <div class="parlay-multi-tip">
+          <span class="multi-tip-label">💡 Resultado — Añadir al parlay:</span>
+          <div class="multi-tip-options">
+            <button class="multi-tip-btn"
+              [class.added]="parlay.hasPick(match!.id, '1x2_home')"
+              (click)="addOneX2ToParlay('home')">
+              @if (parlay.hasPick(match!.id, '1x2_home')) { ✓ }
+              {{ match!.home_team.name }} <span class="mtp-prob">{{ (pred.prob_home_win * 100).toFixed(0) }}%</span>
+            </button>
+            <button class="multi-tip-btn"
+              [class.added]="parlay.hasPick(match!.id, '1x2_draw')"
+              (click)="addOneX2ToParlay('draw')">
+              @if (parlay.hasPick(match!.id, '1x2_draw')) { ✓ }
+              Empate <span class="mtp-prob">{{ (pred.prob_draw * 100).toFixed(0) }}%</span>
+            </button>
+            <button class="multi-tip-btn"
+              [class.added]="parlay.hasPick(match!.id, '1x2_away')"
+              (click)="addOneX2ToParlay('away')">
+              @if (parlay.hasPick(match!.id, '1x2_away')) { ✓ }
+              {{ match!.away_team.name }} <span class="mtp-prob">{{ (pred.prob_away_win * 100).toFixed(0) }}%</span>
+            </button>
+          </div>
+          <!-- Doble oportunidad -->
+          <div class="multi-tip-options" style="margin-top:6px">
+            <button class="multi-tip-btn dc-btn"
+              [class.added]="parlay.hasPick(match!.id, 'dc_1x')"
+              (click)="addDoubleChance('1x')">
+              @if (parlay.hasPick(match!.id, 'dc_1x')) { ✓ }
+              {{ match!.home_team.name }} o Empate
+              <span class="mtp-prob">{{ ((pred.prob_home_win + pred.prob_draw) * 100).toFixed(0) }}%</span>
+            </button>
+            <button class="multi-tip-btn dc-btn"
+              [class.added]="parlay.hasPick(match!.id, 'dc_x2')"
+              (click)="addDoubleChance('x2')">
+              @if (parlay.hasPick(match!.id, 'dc_x2')) { ✓ }
+              {{ match!.away_team.name }} o Empate
+              <span class="mtp-prob">{{ ((pred.prob_away_win + pred.prob_draw) * 100).toFixed(0) }}%</span>
+            </button>
+          </div>
+        </div>
+        }
 
         <!-- Markets grid — Goles -->
         <div class="section-title">⚽ Mercados de goles</div>
@@ -165,6 +208,23 @@ Chart.register(...registerables);
             <span class="market-pct">{{ (pred.prob_btts * 100).toFixed(0) }}%</span>
           </div>
         </div>
+        @if (goalSuggestions.length > 0 && auth.isAdmin()) {
+          <div class="parlay-multi-tip">
+            <span class="multi-tip-label">💡 <strong>{{ goalExpected.toFixed(2) }}</strong> goles esperados — Añadir al parlay:</span>
+            <div class="multi-tip-options">
+              @for (s of goalSuggestions; track s.line) {
+                <button
+                  class="multi-tip-btn"
+                  [class.added]="parlay.hasPick(match!.id, 'goals_' + s.line)"
+                  (click)="addLineToParlay('goals', s)"
+                >
+                  @if (parlay.hasPick(match!.id, 'goals_' + s.line)) { ✓ }
+                  Over {{ s.line }} <span class="mtp-prob">{{ (s.prob * 100).toFixed(0) }}%</span>
+                </button>
+              }
+            </div>
+          </div>
+        }
 
         <!-- Corners -->
         <div class="section-title">🚩 Corners</div>
@@ -199,6 +259,23 @@ Chart.register(...registerables);
             </div>
           </div>
         </div>
+        @if (cornerSuggestions.length > 0 && auth.isAdmin()) {
+          <div class="parlay-multi-tip">
+            <span class="multi-tip-label">💡 <strong>{{ cornerExpected.toFixed(1) }}</strong> córneres esperados — Añadir al parlay:</span>
+            <div class="multi-tip-options">
+              @for (s of cornerSuggestions; track s.line) {
+                <button
+                  class="multi-tip-btn"
+                  [class.added]="parlay.hasPick(match!.id, 'corners_' + s.line)"
+                  (click)="addLineToParlay('corners', s)"
+                >
+                  @if (parlay.hasPick(match!.id, 'corners_' + s.line)) { ✓ }
+                  Over {{ s.line }} <span class="mtp-prob">{{ (s.prob * 100).toFixed(0) }}%</span>
+                </button>
+              }
+            </div>
+          </div>
+        }
 
         <!-- Tarjetas -->
         <div class="section-title">🟨 Tarjetas</div>
@@ -233,6 +310,23 @@ Chart.register(...registerables);
             </div>
           </div>
         </div>
+        @if (cardSuggestions.length > 0 && auth.isAdmin()) {
+          <div class="parlay-multi-tip">
+            <span class="multi-tip-label">💡 <strong>{{ cardExpected.toFixed(1) }}</strong> tarjetas esperadas — Añadir al parlay:</span>
+            <div class="multi-tip-options">
+              @for (s of cardSuggestions; track s.line) {
+                <button
+                  class="multi-tip-btn"
+                  [class.added]="parlay.hasPick(match!.id, 'cards_' + s.line)"
+                  (click)="addLineToParlay('cards', s)"
+                >
+                  @if (parlay.hasPick(match!.id, 'cards_' + s.line)) { ✓ }
+                  Over {{ s.line }} <span class="mtp-prob">{{ (s.prob * 100).toFixed(0) }}%</span>
+                </button>
+              }
+            </div>
+          </div>
+        }
 
         <!-- Score distribution -->
         <div class="section-title">Distribución de resultados más probables</div>
@@ -672,6 +766,95 @@ Chart.register(...registerables);
       font-size: 13px; font-weight: 700; color: #10b981;
     }
 
+    .parlay-multi-tip {
+      margin: 8px 0 4px;
+      padding: 10px 12px;
+      background: rgba(0,255,135,0.04);
+      border: 1px solid rgba(0,255,135,0.15);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .multi-tip-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .multi-tip-label strong { color: var(--text-primary); }
+    .multi-tip-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .multi-tip-btn {
+      background: rgba(0,255,135,0.08);
+      border: 1px solid rgba(0,255,135,0.25);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .multi-tip-btn:hover { background: rgba(0,255,135,0.18); }
+    .multi-tip-btn.added {
+      background: rgba(0,255,135,0.22);
+      border-color: var(--accent);
+    }
+    .dc-btn {
+      border-color: rgba(129,140,248,0.35);
+      color: #a5b4fc;
+    }
+    .dc-btn:hover { background: rgba(129,140,248,0.12); border-color: #818cf8; }
+    .dc-btn.added { background: rgba(129,140,248,0.18); border-color: #818cf8; }
+    .mtp-prob {
+      font-size: 11px;
+      opacity: 0.8;
+    }
+
+    .parlay-tip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 8px 0 4px;
+      padding: 9px 12px;
+      background: rgba(0,255,135,0.04);
+      border: 1px solid rgba(0,255,135,0.15);
+      border-radius: 8px;
+      flex-wrap: wrap;
+    }
+    .parlay-tip.added {
+      background: rgba(0,255,135,0.1);
+      border-color: rgba(0,255,135,0.35);
+    }
+    .tip-text {
+      font-size: 12px;
+      color: var(--text-secondary);
+      flex: 1;
+      min-width: 0;
+    }
+    .tip-text strong { color: var(--text-primary); }
+    .tip-btn {
+      background: rgba(0,255,135,0.12);
+      border: 1px solid rgba(0,255,135,0.3);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .tip-btn:hover { background: rgba(0,255,135,0.22); }
+    .parlay-tip.added .tip-btn { background: rgba(0,255,135,0.22); }
+
     .disclaimer {
       margin-top: 20px;
       padding: 12px;
@@ -704,7 +887,7 @@ export class MatchDetailComponent implements OnChanges, AfterViewInit, OnDestroy
   private charts: Chart[] = [];
   private redrawTimer: any;
 
-  constructor(private api: ApiService, public auth: AuthService) { }
+  constructor(private api: ApiService, public auth: AuthService, public parlay: ParlayService) { }
 
   get pred() { return this.match?.prediction; }
   get isFinished() { return FINISHED_STATUSES.includes(this.match?.status ?? ''); }
@@ -792,6 +975,150 @@ export class MatchDetailComponent implements OnChanges, AfterViewInit, OnDestroy
     };
     return labels[market] || market;
   }
+
+  // ── Parlay suggestions ──────────────────────────────────────────────────
+
+  // ── Cálculo Poisson calibrado para múltiples líneas ────────────────────
+
+  private normCDF(z: number): number {
+    const t = 1 / (1 + 0.2316419 * Math.abs(z));
+    const d = 0.3989423 * Math.exp(-0.5 * z * z);
+    const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.7814779 + t * (-1.8212559 + t * 1.3302745))));
+    return z >= 0 ? 1 - p : p;
+  }
+
+  private poissonOver(lambda: number, line: number): number {
+    if (lambda <= 0) return 0;
+    const k = Math.floor(line);
+    const z = (k + 0.5 - lambda) / Math.sqrt(lambda);
+    return this.normCDF(-z);
+  }
+
+  private calibratedLines(
+    lambda: number, modelProb95: number, lines: number[]
+  ): Array<{ line: number; pick: string; prob: number }> {
+    const p95 = this.poissonOver(lambda, 9.5);
+    const cal = (p95 > 0.02 && modelProb95 > 0)
+      ? Math.min(3, Math.max(0.15, modelProb95 / p95))
+      : 1;
+    return lines.map(line => ({
+      line,
+      pick: `Over ${line}`,
+      prob: Math.max(0.04, Math.min(0.97, this.poissonOver(lambda, line) * cal)),
+    }));
+  }
+
+  get cornerExpected(): number {
+    return (this.pred?.expected_home_corners ?? 0) + (this.pred?.expected_away_corners ?? 0);
+  }
+
+  get cardExpected(): number {
+    return (this.pred?.expected_home_cards ?? 0) + (this.pred?.expected_away_cards ?? 0);
+  }
+
+  get goalExpected(): number {
+    return (this.pred?.expected_home_goals ?? 0) + (this.pred?.expected_away_goals ?? 0);
+  }
+
+  private calibratedLinesAnchored(
+    lambda: number, anchorLine: number, anchorProb: number, lines: number[]
+  ): Array<{ line: number; pick: string; prob: number }> {
+    const pAnchor = this.poissonOver(lambda, anchorLine);
+    const cal = (pAnchor > 0.02 && anchorProb > 0)
+      ? Math.min(3, Math.max(0.15, anchorProb / pAnchor))
+      : 1;
+    return lines.map(line => ({
+      line,
+      pick: `Over ${line}`,
+      prob: Math.max(0.04, Math.min(0.97, this.poissonOver(lambda, line) * cal)),
+    }));
+  }
+
+  get goalSuggestions(): Array<{ line: number; pick: string; prob: number }> {
+    const total = this.goalExpected;
+    if (total < 0.3) return [];
+    return this.calibratedLinesAnchored(total, 2.5, this.pred?.prob_over_25 ?? 0.5, [0.5, 1.5, 2.5, 3.5, 4.5])
+      .filter(s => s.prob >= 0.08 && s.prob <= 0.96);
+  }
+
+  get cornerSuggestions(): Array<{ line: number; pick: string; prob: number }> {
+    const total = this.cornerExpected;
+    if (total < 5) return [];
+    const allLines = [6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.5];
+    const lines = allLines.filter(l => l >= total - 4.5 && l <= total + 1.5);
+    return this.calibratedLines(total, this.pred?.prob_over_95_corners ?? 0.5, lines)
+      .filter(s => s.prob >= 0.13 && s.prob <= 0.95);
+  }
+
+  get cardSuggestions(): Array<{ line: number; pick: string; prob: number }> {
+    const total = this.cardExpected;
+    if (total < 2) return [];
+    const allLines = [1.5, 2.5, 3.5, 4.5, 5.5, 6.5];
+    const lines = allLines.filter(l => l >= total - 3 && l <= total + 1.5);
+    return this.calibratedLines(total, this.pred?.prob_over_35_cards ?? 0.5, lines)
+      .filter(s => s.prob >= 0.13 && s.prob <= 0.95);
+  }
+
+  addLineToParlay(type: 'corners' | 'cards' | 'goals', s: { line: number; pick: string; prob: number }): void {
+    if (!this.match || !this.pred) return;
+    const marketKey = `${type}_${s.line}`;
+    const market = type === 'corners' ? '🚩 Córneres' : type === 'cards' ? '🟨 Tarjetas' : '⚽ Goles';
+    const expected = type === 'corners' ? this.cornerExpected : type === 'cards' ? this.cardExpected : this.goalExpected;
+    this.parlay.togglePick({
+      matchId: this.match.id,
+      matchLabel: `${this.match.home_team.name} vs ${this.match.away_team.name}`,
+      league: this.match.league.name,
+      marketKey,
+      market,
+      pick: s.pick,
+      line: s.line,
+      modelExpected: expected,
+      probability: s.prob,
+      estimatedOdds: ParlayService.oddsFromProb(s.prob),
+    });
+  }
+
+  addOneX2ToParlay(outcome: 'home' | 'draw' | 'away'): void {
+    if (!this.match || !this.pred) return;
+    const home = this.match.home_team.name;
+    const away = this.match.away_team.name;
+    const marketKey = `1x2_${outcome}`;
+    const pick  = outcome === 'home' ? `Local (${home})` : outcome === 'draw' ? 'Empate' : `Visitante (${away})`;
+    const prob  = outcome === 'home' ? this.pred.prob_home_win : outcome === 'draw' ? this.pred.prob_draw : this.pred.prob_away_win;
+    this.parlay.togglePick({
+      matchId: this.match.id,
+      matchLabel: `${home} vs ${away}`,
+      league: this.match.league.name,
+      marketKey,
+      market: '🏆 1X2',
+      pick,
+      probability: prob,
+      estimatedOdds: ParlayService.oddsFromProb(prob),
+    });
+  }
+
+  addDoubleChance(type: '1x' | 'x2'): void {
+    if (!this.match || !this.pred) return;
+    const home = this.match.home_team.name;
+    const away = this.match.away_team.name;
+    const marketKey = `dc_${type}`;
+    const pick = type === '1x' ? `${home} o Empate` : `${away} o Empate`;
+    const prob = type === '1x'
+      ? this.pred.prob_home_win + this.pred.prob_draw
+      : this.pred.prob_away_win + this.pred.prob_draw;
+    this.parlay.togglePick({
+      matchId: this.match.id,
+      matchLabel: `${home} vs ${away}`,
+      league: this.match.league.name,
+      marketKey,
+      market: '🔀 Doble Oportunidad',
+      pick,
+      probability: Math.min(prob, 0.97),
+      estimatedOdds: ParlayService.oddsFromProb(Math.min(prob, 0.97)),
+    });
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
 
   saveBet(vb: ValueBet): void {
     this.api.saveBet({

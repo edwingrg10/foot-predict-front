@@ -6,7 +6,7 @@ import { LeagueGroup, League, Match, FINISHED_STATUSES, LIVE_STATUSES } from '..
 import { MatchRowComponent } from '../match-row/index';
 import { MatchDetailComponent } from '../match-detail/match-detail.component';
 
-type DayTab = 'today' | 'tomorrow';
+type DayTab = 'today' | 'tomorrow' | 'custom';
 
 @Component({
   selector: 'app-dashboard',
@@ -15,7 +15,7 @@ type DayTab = 'today' | 'tomorrow';
   template: `
     <div class="page">
 
-      <!-- Tabs Hoy / Mañana -->
+      <!-- Tabs Hoy / Mañana / Fecha -->
       <div class="day-tabs">
         <button class="day-tab" [class.active]="activeDay() === 'today'" (click)="switchDay('today')">
           <span class="tab-icon">📅</span>
@@ -27,6 +27,16 @@ type DayTab = 'today' | 'tomorrow';
           <span>Mañana</span>
           <span class="tab-badge">{{ activeDay() === 'tomorrow' ? totalMatches() : '' }}</span>
         </button>
+        <div class="date-tab" [class.active]="activeDay() === 'custom'">
+          <span class="tab-icon">🗓️</span>
+          <input
+            class="date-input"
+            type="date"
+            [value]="customDate"
+            (change)="onDateChange($event)"
+            title="Ver partidos de otra fecha"
+          />
+        </div>
       </div>
 
       <!-- Toolbar -->
@@ -141,12 +151,19 @@ type DayTab = 'today' | 'tomorrow';
       display: flex;
       gap: 8px;
       margin-bottom: 14px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
     }
+    .day-tabs::-webkit-scrollbar { display: none; }
     .day-tab {
+      flex: 1;
+      min-width: 110px;
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
-      padding: 10px 24px;
+      padding: 12px 16px;
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 10px;
@@ -155,6 +172,8 @@ type DayTab = 'today' | 'tomorrow';
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
     .day-tab:hover { border-color: var(--accent); color: var(--text-primary); }
     .day-tab.active {
@@ -162,7 +181,36 @@ type DayTab = 'today' | 'tomorrow';
       border-color: var(--accent);
       color: #000;
     }
-    .tab-icon { font-size: 16px; }
+    .date-tab {
+      flex: 1.4;
+      min-width: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-muted);
+      font-size: 14px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .date-tab.active { border-color: var(--accent); }
+    .date-input {
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+      color-scheme: dark;
+      min-width: 0;
+      flex: 1;
+    }
+    .tab-icon { font-size: 16px; flex-shrink: 0; }
     .tab-badge {
       background: rgba(0,0,0,0.15);
       border-radius: 20px;
@@ -339,6 +387,7 @@ export class DashboardComponent implements OnInit {
   selectedLeagueId: number | null = null;
   statusFilter = '';
   searchQuery  = '';
+  customDate   = '';
   private searchTimer: any;
 
   filteredGroups = computed(() => {
@@ -374,6 +423,20 @@ export class DashboardComponent implements OnInit {
     this.load();
   }
 
+  onDateChange(event: Event): void {
+    const val = (event.target as HTMLInputElement).value;
+    if (!val) return;
+    this.customDate = val;
+    this.activeDay.set('custom');
+    this.selectedMatch.set(null);
+    this.searchQuery = '';
+    this.loading.set(true);
+    this.api.getMatchesByDate(val, this.selectedLeagueId ?? undefined).subscribe({
+      next: res => { this.groups.set(res.groups ?? []); this.loading.set(false); },
+      error: ()  => this.loading.set(false),
+    });
+  }
+
   load(): void {
     this.searchQuery = '';
     this.loading.set(true);
@@ -384,7 +447,9 @@ export class DashboardComponent implements OnInit {
 
     const matches$ = day === 'tomorrow'
       ? this.api.getTomorrowMatches(lid)
-      : this.api.getTodayMatches(lid);
+      : day === 'custom' && this.customDate
+        ? this.api.getMatchesByDate(this.customDate, lid)
+        : this.api.getTodayMatches(lid);
 
     matches$.subscribe({
       next: res => {
@@ -403,10 +468,11 @@ export class DashboardComponent implements OnInit {
     if (!this.searchQuery.trim()) { this.load(); return; }
     this.searchTimer = setTimeout(() => {
       this.loading.set(true);
+      const day = this.activeDay() === 'tomorrow' ? 'tomorrow' : 'today';
       this.api.searchMatches(
         this.searchQuery.trim(),
         this.selectedLeagueId ?? undefined,
-        this.activeDay()
+        day
       ).subscribe({
         next: res => { this.groups.set(res.groups ?? []); this.loading.set(false); },
         error: e  => { console.error('Search error:', e); this.loading.set(false); },

@@ -101,6 +101,63 @@ export class ApiService {
     return this.http.post<any>(`${this.base}/matches/retrain`, {});
   }
 
+  chat(message: string, history: {role: string; content: string}[], matchId: number | null): Observable<{response: string}> {
+    return this.http.post<{response: string}>(`${this.base}/chat/`, { message, history, match_id: matchId });
+  }
+
+  getBetPerformance(): Observable<any> {
+    return this.http.get<any>(`${this.base}/bets/performance`);
+  }
+
+  verifyAccount(token: string): Observable<{ message: string; username: string }> {
+    return this.http.get<{ message: string; username: string }>(`${this.base}/auth/verify?token=${token}`);
+  }
+
+  createWompiCheckout(plan: string): Observable<{ checkout_url: string }> {
+    return this.http.post<{ checkout_url: string }>(`${this.base}/payments/wompi/checkout?plan=${plan}`, {});
+  }
+
+  getMySubscription(): Observable<any> {
+    return this.http.get<any>(`${this.base}/payments/subscription`);
+  }
+
+  verifyWompiTransaction(transactionId: string): Observable<{ activated: boolean; plan?: string; status?: string }> {
+    return this.http.post<any>(`${this.base}/payments/wompi/verify?transaction_id=${transactionId}`, {});
+  }
+
+  testActivatePlan(plan: string): Observable<{ activated: boolean; plan: string }> {
+    return this.http.post<any>(`${this.base}/payments/test/activate?plan=${plan}`, {});
+  }
+
+  // ── Admin / scraping ────────────────────────────────────────────────────────
+  getScraperStatus(): Observable<any> {
+    return this.http.get<any>(`${this.base}/scraper/status`);
+  }
+
+  scrapeInit(): Observable<any> {
+    return this.http.post<any>(`${this.base}/scraper/init`, {});
+  }
+
+  scrapeDaily(): Observable<any> {
+    return this.http.post<any>(`${this.base}/scraper/daily`, {});
+  }
+
+  scrapeDetails(limit = 50): Observable<any> {
+    return this.http.post<any>(`${this.base}/scraper/details?limit=${limit}`, {});
+  }
+
+  scrapeHistorical(yearsBack = 2): Observable<any> {
+    return this.http.post<any>(`${this.base}/scraper/historical?years_back=${yearsBack}`, {});
+  }
+
+  predictAll(): Observable<any> {
+    return this.http.post<any>(`${this.base}/matches/predict-all`, {});
+  }
+
+  trainModel(): Observable<any> {
+    return this.http.post<any>(`${this.base}/matches/train`, {});
+  }
+
   getPredictionsHistory(page = 1, perPage = 25, leagueId?: number): Observable<any> {
     let params = new HttpParams()
       .set('page', page)

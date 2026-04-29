@@ -26,7 +26,7 @@ import { Match, FINISHED_STATUSES, LIVE_STATUSES } from '../../models/interfaces
       <div class="team home-team">
         <span class="team-name">{{ match.home_team.name }}</span>
         <img [src]="match.home_team.logo" [alt]="match.home_team.name"
-          class="team-logo" onerror="this.style.display='none'" />
+          class="team-logo" referrerpolicy="no-referrer" onerror="this.style.display='none'" />
       </div>
 
       <!-- Marcador / VS -->
@@ -53,7 +53,7 @@ import { Match, FINISHED_STATUSES, LIVE_STATUSES } from '../../models/interfaces
       <!-- Equipo visitante -->
       <div class="team away-team">
         <img [src]="match.away_team.logo" [alt]="match.away_team.name"
-          class="team-logo" onerror="this.style.display='none'" />
+          class="team-logo" referrerpolicy="no-referrer" onerror="this.style.display='none'" />
         <span class="team-name">{{ match.away_team.name }}</span>
       </div>
 

@@ -86,14 +86,14 @@ import { CommonModule } from '@angular/common';
             <div class="ln-mock-teams">
               <div class="ln-mock-team">
                 <div class="ln-mock-badge">
-                  <img src="https://img.sofascore.com/api/v1/team/2829/image" alt="Real Madrid" />
+                  <img src="https://img.sofascore.com/api/v1/team/2829/image" alt="Real Madrid" referrerpolicy="no-referrer" />
                 </div>
                 <span>Real Madrid</span>
               </div>
               <div class="ln-mock-vs">VS</div>
               <div class="ln-mock-team ln-mock-team-r">
                 <div class="ln-mock-badge">
-                  <img src="https://img.sofascore.com/api/v1/team/2817/image" alt="Barcelona" />
+                  <img src="https://img.sofascore.com/api/v1/team/2817/image" alt="Barcelona" referrerpolicy="no-referrer" />
                 </div>
                 <span>Barcelona</span>
               </div>

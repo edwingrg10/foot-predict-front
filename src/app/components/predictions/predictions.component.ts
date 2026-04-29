@@ -88,7 +88,7 @@ type DayTab = 'today' | 'tomorrow' | 'date';
           <div class="league-section">
             <div class="league-header">
               <img [src]="group.league_logo" [alt]="group.league_name"
-                class="league-logo" onerror="this.style.display='none'" />
+                class="league-logo" referrerpolicy="no-referrer" onerror="this.style.display='none'" />
               <span class="league-name">{{ group.league_name }}</span>
               <span class="league-country">{{ group.league_country }}</span>
               <span class="league-count">{{ group.matches.length }} partido{{ group.matches.length !== 1 ? 's' : '' }}</span>
@@ -103,7 +103,7 @@ type DayTab = 'today' | 'tomorrow' | 'date';
                     <div class="card-teams">
                       <div class="team-block home">
                         <img [src]="match.home_team.logo" class="team-logo"
-                          onerror="this.style.display='none'" />
+                          referrerpolicy="no-referrer" onerror="this.style.display='none'" />
                         <span class="team-name">{{ match.home_team.name }}</span>
                       </div>
 
@@ -120,7 +120,7 @@ type DayTab = 'today' | 'tomorrow' | 'date';
 
                       <div class="team-block away">
                         <img [src]="match.away_team.logo" class="team-logo"
-                          onerror="this.style.display='none'" />
+                          referrerpolicy="no-referrer" onerror="this.style.display='none'" />
                         <span class="team-name">{{ match.away_team.name }}</span>
                       </div>
                     </div>

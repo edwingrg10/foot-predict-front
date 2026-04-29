@@ -21,7 +21,7 @@ Chart.register(...registerables);
       <!-- Header -->
       <div class="detail-header">
         <div class="detail-league">
-          <img [src]="match.league.logo" [alt]="match.league.name" onerror="this.style.display='none'" />
+          <img [src]="match.league.logo" [alt]="match.league.name" referrerpolicy="no-referrer" onerror="this.style.display='none'" />
           {{ match.league.name }} · {{ match.league.country }}
         </div>
         <div class="detail-meta">
@@ -35,7 +35,7 @@ Chart.register(...registerables);
       <!-- Teams header -->
       <div class="teams-header">
         <div class="team-block">
-          <img [src]="match.home_team.logo" [alt]="match.home_team.name" class="team-logo-lg" onerror="this.style.display='none'" />
+          <img [src]="match.home_team.logo" [alt]="match.home_team.name" class="team-logo-lg" referrerpolicy="no-referrer" onerror="this.style.display='none'" />
           <h2>{{ match.home_team.name }}</h2>
           <div class="form-chars">
             @for (ch of match.home_team.form?.split(''); track $index) {
@@ -65,7 +65,7 @@ Chart.register(...registerables);
           }
         </div>
         <div class="team-block right">
-          <img [src]="match.away_team.logo" [alt]="match.away_team.name" class="team-logo-lg" onerror="this.style.display='none'" />
+          <img [src]="match.away_team.logo" [alt]="match.away_team.name" class="team-logo-lg" referrerpolicy="no-referrer" onerror="this.style.display='none'" />
           <h2>{{ match.away_team.name }}</h2>
           <div class="form-chars">
             @for (ch of match.away_team.form?.split(''); track $index) {
@@ -231,12 +231,12 @@ Chart.register(...registerables);
         <div class="corner-card-grid">
           <div class="expected-block">
             <div class="exp-row">
-              <img [src]="match.home_team.logo" class="exp-logo" onerror="this.style.display='none'" />
+              <img [src]="match.home_team.logo" class="exp-logo" referrerpolicy="no-referrer" onerror="this.style.display='none'" />
               <span class="exp-label">{{ match.home_team.name }}</span>
               <span class="exp-val" style="color:var(--accent)">{{ corners(pred.expected_home_corners) }}</span>
             </div>
             <div class="exp-row">
-              <img [src]="match.away_team.logo" class="exp-logo" onerror="this.style.display='none'" />
+              <img [src]="match.away_team.logo" class="exp-logo" referrerpolicy="no-referrer" onerror="this.style.display='none'" />
               <span class="exp-label">{{ match.away_team.name }}</span>
               <span class="exp-val" style="color:#ef4444">{{ corners(pred.expected_away_corners) }}</span>
             </div>
@@ -282,12 +282,12 @@ Chart.register(...registerables);
         <div class="corner-card-grid">
           <div class="expected-block">
             <div class="exp-row">
-              <img [src]="match.home_team.logo" class="exp-logo" onerror="this.style.display='none'" />
+              <img [src]="match.home_team.logo" class="exp-logo" referrerpolicy="no-referrer" onerror="this.style.display='none'" />
               <span class="exp-label">{{ match.home_team.name }}</span>
               <span class="exp-val" style="color:var(--accent)">{{ corners(pred.expected_home_cards) }}</span>
             </div>
             <div class="exp-row">
-              <img [src]="match.away_team.logo" class="exp-logo" onerror="this.style.display='none'" />
+              <img [src]="match.away_team.logo" class="exp-logo" referrerpolicy="no-referrer" onerror="this.style.display='none'" />
               <span class="exp-label">{{ match.away_team.name }}</span>
               <span class="exp-val" style="color:#ef4444">{{ corners(pred.expected_away_cards) }}</span>
             </div>

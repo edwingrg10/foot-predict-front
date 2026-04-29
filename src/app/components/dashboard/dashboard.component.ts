@@ -112,7 +112,7 @@ type DayTab = 'today' | 'tomorrow' | 'custom';
               <div class="league-group">
                 <div class="league-header">
                   <img [src]="group.league_logo" [alt]="group.league_name"
-                    class="league-logo" onerror="this.style.display='none'" />
+                    class="league-logo" referrerpolicy="no-referrer" onerror="this.style.display='none'" />
                   <div class="league-info">
                     <span class="league-name">{{ group.league_name }}</span>
                     <span class="league-country">{{ group.league_country }}</span>

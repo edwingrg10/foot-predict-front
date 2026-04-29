@@ -10,7 +10,7 @@ import { Match } from '../../models/interfaces';
     <div class="match-card" [class.selected]="selected" (click)="select.emit(match)">
       <div class="card-header">
         <div class="league-info">
-          <img [src]="match.league.logo" [alt]="match.league.name" class="league-logo" onerror="this.style.display='none'" />
+          <img [src]="match.league.logo" [alt]="match.league.name" class="league-logo" referrerpolicy="no-referrer" onerror="this.style.display='none'" />
           <span class="league-name">{{ match.league.name }}</span>
           <span class="match-time">{{ formatTime(match.match_date) }}</span>
         </div>
@@ -21,7 +21,7 @@ import { Match } from '../../models/interfaces';
 
       <div class="teams-row">
         <div class="team home">
-          <img [src]="match.home_team.logo" [alt]="match.home_team.name" class="team-logo" onerror="this.style.display='none'" />
+          <img [src]="match.home_team.logo" [alt]="match.home_team.name" class="team-logo" referrerpolicy="no-referrer" onerror="this.style.display='none'" />
           <span class="team-name">{{ match.home_team.name }}</span>
           <span class="form-badge" [title]="'Forma: ' + match.home_team.form">
             {{ match.home_team.form }}
@@ -46,7 +46,7 @@ import { Match } from '../../models/interfaces';
             {{ match.away_team.form }}
           </span>
           <span class="team-name">{{ match.away_team.name }}</span>
-          <img [src]="match.away_team.logo" [alt]="match.away_team.name" class="team-logo" onerror="this.style.display='none'" />
+          <img [src]="match.away_team.logo" [alt]="match.away_team.name" class="team-logo" referrerpolicy="no-referrer" onerror="this.style.display='none'" />
         </div>
       </div>
 
